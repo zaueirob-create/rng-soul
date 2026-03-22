@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RNG Soul</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Bebas+Neue&family=Cinzel:wght@400;700&family=Orbitron:wght@400;700&family=Playfair+Display:wght@400;700&family=Press+Start+2P&family=Uncial+Antiqua&family=Exo+2:wght@300;600&family=Monoton&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:      #f5f5f0;
+    --fg:      #0a0a0a;
+    --mid:     #999990;
+    --border:  #e0e0d8;
+    --btn-bg:  #f5f5f0;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 40px 20px;
+    overflow-x: hidden;
+    position: relative;
+    transition: background 0.3s, color 0.3s;
+  }
+
+  header {
+    font-size: 0.7rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--mid);
+    font-weight: 300;
+  }
+
+  .number-zone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    width: 100%;
+    max-width: 700px;
+  }
+
+  .number-display {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(1.4rem, 5vw, 3rem);
+    line-height: 1.1;
+    letter-spacing: 0.08em;
+    color: var(--fg);
+    text-align: center;
+    transition: opacity 0.05s;
+  }
+
+  .number-display.rolling { opacity: 0.5; }
+
+  .result-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--mid);
+    min-height: 1.2em;
+    text-align: center;
+  }
+
+  /* ── RANG ── */
+  .rank-zone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 28px;
+    border: 2px solid var(--border);
+    min-width: 280px;
+    transition: background 0.5s, border-color 0.5s, box-shadow 0.5s;
+  }
+
+  .rank-badge {
+    transition: color 0.5s, font-family 0.3s;
+  }
+
+  .rank-label {
+    font-size: 0.58rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--mid);
+  }
+
+  .rank-badge {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.2rem;
+    letter-spacing: 0.12em;
+    text-align: center;
+  }
+
+  .rank-tier {
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    color: var(--mid);
+    font-family: 'DM Mono', monospace;
+    text-align: center;
+    min-height: 1em;
+  }
+
+  .rank-progress-wrap {
+    width: 100%;
+    height: 2px;
+    background: var(--border);
+  }
+
+  .rank-progress-bar {
+    height: 100%;
+    transition: width 0.6s cubic-bezier(.4,0,.2,1), background 0.5s;
+    width: 0%;
+  }
+
+  .rank-next {
+    font-size: 0.55rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--mid);
+    text-align: center;
+  }
+
+  /* ── STATS ── */
+  .stats {
+    display: flex;
+    gap: 40px;
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--mid);
+    text-align: center;
+  }
+
+  .stat span {
+    display: block;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    color: var(--fg);
+    letter-spacing: 0.03em;
+  }
+
+  /* ── VITESSE ── */
+  .speed-bar {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .speed-label {
+    font-size: 0.58rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--mid);
+    margin-right: 4px;
+  }
+
+  .speed-btn {
+    border: 1.5px solid var(--border);
+    background: var(--bg);
+    color: var(--mid);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 5px 10px;
+    cursor: pointer;
+    outline: none;
+    transition: all 0.15s;
+  }
+
+  .speed-btn:hover { border-color: var(--fg); color: var(--fg); }
+  .speed-btn.active { border-color: var(--fg); background: var(--fg); color: var(--bg); }
+
+  /* ── THÈMES ── */
+  .theme-bar {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .theme-btn {
+    width: 28px;
+    height: 28px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.15s, border-color 0.15s;
+    outline: none;
+  }
+
+  .theme-btn[data-theme="blanc"]  { background: #f5f5f0; color: #0a0a0a; border-color: #ccc; }
+  .theme-btn[data-theme="noir"]   { background: #0a0a0a; color: #f0f0f0; border-color: #444; }
+  .theme-btn[data-theme="rose"]   { background: #ffb6c1; color: #7a003a; border-color: #e0708a; }
+  .theme-btn[data-theme="bleu"]   { background: #0d1b4b; color: #a8d4ff; border-color: #2255cc; }
+  .theme-btn[data-theme="vert"]   { background: #0a2a14; color: #7fffb0; border-color: #1a6632; }
+  .theme-btn[data-theme="rouge"]  { background: #2a0000; color: #ffaaaa; border-color: #880000; }
+
+  .theme-btn:hover { transform: scale(1.15); }
+  .theme-btn.active { border-color: var(--fg) !important; transform: scale(1.2); }
+
+
+  /* ── BOUTONS ── */
+  .btn-bar {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .btn {
+    border: 2px solid var(--fg);
+    background: var(--bg);
+    color: var(--fg);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    padding: 14px 28px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: color 0.15s, transform 0.1s;
+    outline: none;
+    white-space: nowrap;
+  }
+
+  .btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--fg);
+    transform: translateY(100%);
+    transition: transform 0.18s cubic-bezier(.4,0,.2,1);
+    z-index: 0;
+  }
+
+  .btn:hover::after { transform: translateY(0); }
+  .btn:hover { color: var(--bg); }
+  .btn span { position: relative; z-index: 1; }
+  .btn:active { transform: scale(0.97); }
+  .btn:disabled { opacity: 0.3; cursor: not-allowed; pointer-events: none; }
+
+  .btn-auto.active { background: var(--fg); color: var(--bg); }
+  .btn-auto.active::after { display: none; }
+
+  .auto-info {
+    font-size: 0.62rem;
+    letter-spacing: 0.15em;
+    color: var(--mid);
+    text-transform: uppercase;
+    text-align: center;
+    min-height: 1rem;
+  }
+
+  @keyframes rankup {
+    0%   { opacity: 0; transform: translateX(-50%) translateY(10px); }
+    20%  { opacity: 1; transform: translateX(-50%) translateY(0); }
+    80%  { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  .rankup-toast {
+    position: fixed;
+    top: 30%;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.4rem;
+    letter-spacing: 0.2em;
+    background: var(--fg);
+    color: var(--bg);
+    padding: 12px 32px;
+    pointer-events: none;
+    opacity: 0;
+    animation: rankup 1.8s ease forwards;
+    z-index: 99;
+    white-space: nowrap;
+  }
+
+  /* ── MENU ── */
+  #screenMenu, #screenGame, #screenCredits, #screenClassement {
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 0; left: 0;
+    transition: opacity 0.4s, transform 0.4s;
+    padding: 40px 20px;
+  }
+
+  #screenGame {
+    position: relative;
+    min-height: 100vh;
+    justify-content: space-between;
+  }
+
+  .screen-hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(16px);
+  }
+
+  .menu-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(3rem, 12vw, 7rem);
+    letter-spacing: 0.08em;
+    color: var(--fg);
+    line-height: 1;
+    text-align: center;
+  }
+
+  .menu-subtitle {
+    font-size: 0.65rem;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: var(--mid);
+    margin-top: 4px;
+    margin-bottom: 48px;
+    text-align: center;
+  }
+
+  .menu-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    align-items: center;
+    width: 100%;
+    max-width: 320px;
+  }
+
+  .menu-btn {
+    width: 100%;
+    border: 2px solid var(--fg);
+    background: transparent;
+    color: var(--fg);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    padding: 16px 32px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: color 0.18s, transform 0.1s;
+    outline: none;
+    text-align: center;
+  }
+
+  .menu-btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--fg);
+    transform: translateX(-100%);
+    transition: transform 0.22s cubic-bezier(.4,0,.2,1);
+    z-index: 0;
+  }
+
+  .menu-btn:hover::after { transform: translateX(0); }
+  .menu-btn:hover { color: var(--bg); }
+  .menu-btn span { position: relative; z-index: 1; }
+  .menu-btn:active { transform: scale(0.98); }
+
+  .menu-btn.disabled-btn {
+    opacity: 0.35;
+    cursor: default;
+    pointer-events: none;
+    border-style: dashed;
+  }
+
+  .back-btn {
+    margin-top: 32px;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--mid);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    padding: 8px 16px;
+    transition: color 0.15s;
+  }
+  .back-btn:hover { color: var(--fg); }
+
+  /* ── CRÉDITS / CLASSEMENT ── */
+  .panel-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.5rem;
+    letter-spacing: 0.15em;
+    color: var(--fg);
+    margin-bottom: 28px;
+    text-align: center;
+  }
+
+  .credits-block {
+    text-align: center;
+    max-width: 400px;
+    line-height: 2;
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    color: var(--mid);
+  }
+
+  .credits-block strong {
+    color: var(--fg);
+    display: block;
+    font-size: 1rem;
+    letter-spacing: 0.2em;
+    margin-bottom: 8px;
+  }
+
+  .classement-table {
+    width: 100%;
+    max-width: 420px;
+    border-collapse: collapse;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+  }
+
+  .classement-table th {
+    text-transform: uppercase;
+    color: var(--mid);
+    font-weight: 300;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+  }
+
+  .classement-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--fg);
+  }
+
+  .classement-table tr:first-child td { color: var(--fg); font-weight: 600; }
+
+  .coming-soon-tag {
+    font-size: 0.55rem;
+    letter-spacing: 0.2em;
+    background: var(--fg);
+    color: var(--bg);
+    padding: 2px 8px;
+    margin-left: 8px;
+    vertical-align: middle;
+    text-transform: uppercase;
+  }
+
+  /* ── SAUVEGARDE ── */
+  .save-bar {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .save-btn {
+    border: 1.5px solid var(--border);
+    background: transparent;
+    color: var(--mid);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 6px 14px;
+    cursor: pointer;
+    outline: none;
+    transition: all 0.15s;
+  }
+
+  .save-btn:hover { border-color: var(--fg); color: var(--fg); }
+
+  .save-toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    background: var(--fg);
+    color: var(--bg);
+    padding: 10px 24px;
+    pointer-events: none;
+    z-index: 999;
+    white-space: nowrap;
+    animation: saveToastAnim 2s ease forwards;
+  }
+
+  @keyframes saveToastAnim {
+    0%   { opacity: 0; transform: translateX(-50%) translateY(8px); }
+    15%  { opacity: 1; transform: translateX(-50%) translateY(0); }
+    75%  { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  .save-indicator {
+    font-size: 0.55rem;
+    letter-spacing: 0.15em;
+    color: var(--mid);
+    text-transform: uppercase;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ MENU ══ -->
+<div id="screenMenu">
+  <div class="menu-title">RNG Soul</div>
+  <div class="menu-subtitle">— le grand rouleau —</div>
+  <div class="menu-buttons">
+    <button class="menu-btn" onclick="showScreen('game')"><span>▶ Jouer</span></button>
+    <button class="menu-btn disabled-btn"><span>★ Succès <span class="coming-soon-tag">bientôt</span></span></button>
+    <button class="menu-btn" onclick="showScreen('classement')"><span>⬆ Classement</span></button>
+    <button class="menu-btn" onclick="showScreen('credits')"><span>✦ Crédits</span></button>
+  </div>
+</div>
+
+<!-- ══ CRÉDITS ══ -->
+<div id="screenCredits" class="screen-hidden">
+  <div class="panel-title">Crédits</div>
+  <div class="credits-block">
+    <strong>RNG Soul</strong>
+    Un jeu de rouleau infini<br>
+    Concept & design<br>
+    Propulsé par le hasard pur<br><br>
+    <strong>Technologies</strong>
+    HTML · CSS · JavaScript<br>
+    Fonts : Bebas Neue, DM Mono<br>
+    Cinzel, Orbitron, Monoton<br><br>
+    <strong>Version</strong>
+    1.0.0 — 2025
+  </div>
+  <button class="back-btn" onclick="showScreen('menu')">← Retour au menu</button>
+</div>
+
+<!-- ══ CLASSEMENT ══ -->
+<div id="screenClassement" class="screen-hidden">
+  <div class="panel-title">Classement</div>
+  <table class="classement-table">
+    <thead>
+      <tr><th>#</th><th>Joueur</th><th>Rang</th><th>Roulés</th></tr>
+    </thead>
+    <tbody id="classementBody">
+      <tr><td>1</td><td>— Toi —</td><td id="clRang">Pierre</td><td id="clRoules">0</td></tr>
+      <tr><td colspan="4" style="text-align:center;color:var(--mid);padding:20px;font-size:0.65rem;letter-spacing:0.2em">CLASSEMENT EN LIGNE BIENTÔT</td></tr>
+    </tbody>
+  </table>
+  <button class="back-btn" onclick="showScreen('menu')">← Retour au menu</button>
+</div>
+
+<!-- ══ JEU ══ -->
+<div id="screenGame" class="screen-hidden">
+<header>— RNG Soul —</header>
+
+<div class="number-zone">
+  <div class="number-display" id="numDisplay">—</div>
+  <div class="result-label" id="resultLabel"></div>
+
+  <div class="rank-zone" id="rankZone">
+    <div class="rank-label" id="rankLabel">Rang actuel</div>
+    <div class="rank-badge" id="rankBadge">Pierre</div>
+    <div class="rank-tier" id="rankTier"></div>
+    <div class="rank-progress-wrap">
+      <div class="rank-progress-bar" id="rankBar"></div>
+    </div>
+    <div class="rank-next" id="rankNext">Prochain : Bronze — 10 rouleaux</div>
+  </div>
+
+  <div class="stats">
+    <div class="stat">Roulés<span id="statTotal">0</span></div>
+    <div class="stat">Meilleur<span id="statBest">—</span></div>
+    <div class="stat">Dernier<span id="statLast">—</span></div>
+  </div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:14px;align-items:center;">
+  <div class="speed-bar">
+    <span class="speed-label">Vitesse :</span>
+    <button class="speed-btn" data-speed="x1" onclick="setSpeed('x1')">x1</button>
+    <button class="speed-btn" data-speed="x2" onclick="setSpeed('x2')">x2</button>
+    <button class="speed-btn" data-speed="x5" onclick="setSpeed('x5')">x5</button>
+    <button class="speed-btn" data-speed="x10" onclick="setSpeed('x10')">x10</button>
+    <button class="speed-btn" data-speed="x50" onclick="setSpeed('x50')">x50</button>
+    <button class="speed-btn" data-speed="x100" onclick="setSpeed('x100')">x100</button>
+    <button class="speed-btn" data-speed="x500" onclick="setSpeed('x500')">x500</button>
+    <button class="speed-btn" data-speed="x1000" onclick="setSpeed('x1000')">x1000</button>
+    <button class="speed-btn" data-speed="x5000" onclick="setSpeed('x5000')">x5000</button>
+    <button class="speed-btn" data-speed="x10000" onclick="setSpeed('x10000')">x10000</button>
+    <button class="speed-btn" data-speed="x50k" onclick="setSpeed('x50k')">x50k</button>
+    <button class="speed-btn" data-speed="x100k" onclick="setSpeed('x100k')">x100k</button>
+    <button class="speed-btn" data-speed="x500k" onclick="setSpeed('x500k')">x500k</button>
+    <button class="speed-btn" data-speed="x1M" onclick="setSpeed('x1M')">x1M</button>
+    <button class="speed-btn" data-speed="x10M" onclick="setSpeed('x10M')">x10M</button>
+    <button class="speed-btn" data-speed="x50M" onclick="setSpeed('x50M')">x50M</button>
+    <button class="speed-btn" data-speed="x100M" onclick="setSpeed('x100M')">x100M</button>
+    <button class="speed-btn" data-speed="x500M" onclick="setSpeed('x500M')">x500M</button>
+    <button class="speed-btn" data-speed="x1B" onclick="setSpeed('x1B')">x1B</button>
+    <button class="speed-btn" data-speed="max" onclick="setSpeed('max')">MAX</button>
+  </div>
+
+  <div class="btn-bar">
+    <button class="btn" id="btnRoll" onclick="roll()"><span>🎲 Rouler</span></button>
+    <button class="btn btn-auto" id="btnAuto" onclick="toggleAuto()"><span>🔁 Rouler auto</span></button>
+  </div>
+  <div class="auto-info" id="autoInfo"></div>
+
+  <!-- sélecteur de thème -->
+  <div class="theme-bar">
+    <span class="speed-label">Thème :</span>
+    <button class="theme-btn active" data-theme="blanc" onclick="setTheme('blanc')" title="Blanc">□</button>
+    <button class="theme-btn" data-theme="noir" onclick="setTheme('noir')" title="Noir">■</button>
+    <button class="theme-btn" data-theme="rose" onclick="setTheme('rose')" title="Rose">■</button>
+    <button class="theme-btn" data-theme="bleu" onclick="setTheme('bleu')" title="Bleu">■</button>
+    <button class="theme-btn" data-theme="vert" onclick="setTheme('vert')" title="Vert">■</button>
+    <button class="theme-btn" data-theme="rouge" onclick="setTheme('rouge')" title="Rouge">■</button>
+  </div>
+</div>
+
+<script>
+const DIGITS = 30;
+
+
+// ── Styles de carte par rang ──
+const RANK_CARD_STYLES = {
+  // Tier 1 — Métaux
+  'Pierre':       { bg:'transparent',  border:'1px solid #aaa',    shadow:'none',                        font:"'DM Mono', monospace",       labelColor:'#888', badgeColor:'#555' },
+  'Bronze':       { bg:'#2a1800',      border:'2px solid #a0622a', shadow:'0 0 8px #a0622a44',           font:"'Uncial Antiqua', cursive",   labelColor:'#c88a50', badgeColor:'#e09050' },
+  'Argent':       { bg:'#1a1a22',      border:'2px solid #9090aa', shadow:'0 0 10px #9090aa44',          font:"'Playfair Display', serif",   labelColor:'#aaaacc', badgeColor:'#ccccee' },
+  'Or':           { bg:'#1a1200',      border:'2px solid #d4a000', shadow:'0 0 14px #d4a00066',          font:"'Cinzel', serif",             labelColor:'#d4a000', badgeColor:'#ffe060' },
+  'Platine':      { bg:'#0a1a1a',      border:'2px solid #4a9a8a', shadow:'0 0 16px #4a9a8a55',         font:"'Exo 2', sans-serif",         labelColor:'#4ac8a8', badgeColor:'#80eecc' },
+  'Diamant':      { bg:'#080820',      border:'2px solid #4488ff', shadow:'0 0 20px #4488ff66',          font:"'Orbitron', sans-serif",      labelColor:'#6699ff', badgeColor:'#aaccff' },
+  'Obsidienne':   { bg:'#0a001a',      border:'2px solid #9933ff', shadow:'0 0 22px #9933ff55',         font:"'Orbitron', sans-serif",      labelColor:'#aa55ff', badgeColor:'#cc88ff' },
+  // Tier 2 — Divin
+  'Mythique':     { bg:'#1a0000',      border:'2px solid #cc2200', shadow:'0 0 24px #cc220077',          font:"'Cinzel', serif",             labelColor:'#ff5533', badgeColor:'#ff7755' },
+  'Céleste':      { bg:'#000e2a',      border:'2px solid #0088ff', shadow:'0 0 28px #0088ff66',          font:"'Orbitron', sans-serif",      labelColor:'#44aaff', badgeColor:'#88ccff' },
+  'Éternel':      { bg:'#1a0800',      border:'2px solid #ff8800', shadow:'0 0 28px #ff880066',          font:"'Uncial Antiqua', cursive",   labelColor:'#ffaa44', badgeColor:'#ffcc88' },
+  'Divin':        { bg:'#12001a',      border:'2px solid #cc00ff', shadow:'0 0 30px #cc00ff66',          font:"'Cinzel', serif",             labelColor:'#dd44ff', badgeColor:'#ee88ff' },
+  'Transcendant': { bg:'#1a0010',      border:'2px solid #ff0066', shadow:'0 0 32px #ff006666',          font:"'Monoton', cursive",          labelColor:'#ff4488', badgeColor:'#ff88bb' },
+  'Cosmique':     { bg:'#000a1a',      border:'2px solid #0055bb', shadow:'0 0 32px #0055bb55',          font:"'Orbitron', sans-serif",      labelColor:'#2288dd', badgeColor:'#55aaff' },
+  'Primordial':   { bg:'#1a0f00',      border:'2px solid #aa6600', shadow:'0 0 28px #aa660055',          font:"'Uncial Antiqua', cursive",   labelColor:'#cc8833', badgeColor:'#ffaa55' },
+  'Néant':        { bg:'#050005',      border:'1px solid #550055', shadow:'0 0 20px #55005577',          font:"'Orbitron', sans-serif",      labelColor:'#882288', badgeColor:'#aa44aa' },
+  'Absolu':       { bg:'#000000',      border:'2px solid #ffffff', shadow:'0 0 30px #ffffff44',          font:"'Bebas Neue', sans-serif",    labelColor:'#aaaaaa', badgeColor:'#ffffff' },
+  // Tier 3 — Mathématique
+  'Epsilon':      { bg:'#001a10',      border:'2px solid #00bb77', shadow:'0 0 22px #00bb7755',          font:"'Exo 2', sans-serif",         labelColor:'#00cc88', badgeColor:'#44ffaa' },
+  'Delta':        { bg:'#1a0f00',      border:'2px solid #cc7700', shadow:'0 0 22px #cc770055',          font:"'Exo 2', sans-serif",         labelColor:'#ee9900', badgeColor:'#ffcc44' },
+  'Sigma':        { bg:'#000a1a',      border:'2px solid #0066cc', shadow:'0 0 22px #0066cc55',          font:"'Orbitron', sans-serif",      labelColor:'#2288ee', badgeColor:'#55aaff' },
+  'Lambda':       { bg:'#0f0015',      border:'2px solid #aa0066', shadow:'0 0 22px #aa006655',          font:"'Cinzel', serif",             labelColor:'#cc2288', badgeColor:'#ff55bb' },
+  'Pi':           { bg:'#0a1400',      border:'2px solid #55aa00', shadow:'0 0 22px #55aa0055',          font:"'Exo 2', sans-serif",         labelColor:'#77cc22', badgeColor:'#aaff44' },
+  'Phi':          { bg:'#150a00',      border:'2px solid #cc6600', shadow:'0 0 22px #cc660055',          font:"'Cinzel', serif",             labelColor:'#ee8822', badgeColor:'#ffaa55' },
+  'Psi':          { bg:'#08001a',      border:'2px solid #6600cc', shadow:'0 0 24px #6600cc55',          font:"'Orbitron', sans-serif",      labelColor:'#8833ee', badgeColor:'#aa66ff' },
+  'Omega':        { bg:'#1a0000',      border:'2px solid #dd0000', shadow:'0 0 30px #dd000066',          font:"'Cinzel', serif",             labelColor:'#ff3333', badgeColor:'#ff6666' },
+  // Tier 4 — Infini
+  'Aleph-0':      { bg:'#001520',      border:'2px solid #0099cc', shadow:'0 0 28px #0099cc66',          font:"'Monoton', cursive",          labelColor:'#00bbdd', badgeColor:'#44ddff' },
+  'Aleph-1':      { bg:'#001a22',      border:'2px solid #00aadd', shadow:'0 0 30px #00aadd66',          font:"'Monoton', cursive",          labelColor:'#00ccee', badgeColor:'#55eeff' },
+  'Aleph-2':      { bg:'#001e28',      border:'2px solid #00bbee', shadow:'0 0 32px #00bbee66',          font:"'Monoton', cursive",          labelColor:'#00ddff', badgeColor:'#66ffff' },
+  'Aleph-Ω':     { bg:'#00222e',      border:'2px solid #00ccff', shadow:'0 0 36px #00ccff77',          font:"'Monoton', cursive",          labelColor:'#00eeff', badgeColor:'#88ffff' },
+  // Tier 5 — Ordinal
+  'Ω':           { bg:'#1a0500',      border:'2px solid #ff4400', shadow:'0 0 32px #ff440066',           font:"'Cinzel', serif",             labelColor:'#ff6633', badgeColor:'#ff8855' },
+  'Ω²':          { bg:'#1e0600',      border:'2px solid #ff5500', shadow:'0 0 34px #ff550077',           font:"'Cinzel', serif",             labelColor:'#ff7744', badgeColor:'#ff9966' },
+  'ΩΩ':          { bg:'#220800',      border:'2px solid #ff6600', shadow:'0 0 36px #ff660077',           font:"'Cinzel', serif",             labelColor:'#ff8855', badgeColor:'#ffaa77' },
+  'ε₀':          { bg:'#280a00',      border:'2px solid #ff7700', shadow:'0 0 40px #ff770088',           font:"'Cinzel', serif",             labelColor:'#ff9966', badgeColor:'#ffbb88' },
+  // Tier 6 — Absolu mathématique
+  'Graham':       { bg:'#04001a',      border:'2px solid #3300cc', shadow:'0 0 36px #3300cc77',           font:"'Press Start 2P', cursive",   labelColor:'#5522ee', badgeColor:'#7744ff' },
+  'TREE(3)':      { bg:'#05001e',      border:'2px solid #4400dd', shadow:'0 0 38px #4400dd77',           font:"'Press Start 2P', cursive",   labelColor:'#6633ff', badgeColor:'#8855ff' },
+  'Rayo':         { bg:'#060022',      border:'2px solid #5500ee', shadow:'0 0 40px #5500ee88',           font:"'Press Start 2P', cursive",   labelColor:'#7744ff', badgeColor:'#9966ff' },
+  'BB(n)':        { bg:'#080026',      border:'2px solid #6600ff', shadow:'0 0 44px #6600ff88',           font:"'Press Start 2P', cursive",   labelColor:'#8855ff', badgeColor:'#aa77ff' },
+  '∅ Zéro':      { bg:'#000000',      border:'3px solid #ffffff', shadow:'0 0 50px #ffffff66, 0 0 100px #ffffff22', font:"'Monoton', cursive", labelColor:'#cccccc', badgeColor:'#ffffff' },
+};
+
+function applyRankCardStyle(rankName) {
+  const card = document.getElementById('rankZone');
+  const badge = document.getElementById('rankBadge');
+  const label = document.getElementById('rankLabel');
+  const tier  = document.getElementById('rankTier');
+  const nxt   = document.getElementById('rankNext');
+
+  const s = RANK_CARD_STYLES[rankName] || RANK_CARD_STYLES['Pierre'];
+  card.style.background   = s.bg;
+  card.style.border       = s.border;
+  card.style.boxShadow    = s.shadow;
+  badge.style.fontFamily  = s.font;
+  badge.style.color       = s.badgeColor;
+  if (label) label.style.color = s.labelColor;
+  if (tier)  tier.style.color  = s.labelColor;
+  if (nxt)   nxt.style.color   = s.labelColor;
+}
+
+const SPEED_CONFIGS = {
+  x1:      { duration: 1400, interval: 80, autoDelay: 1800 },
+  x2:      { duration: 700,  interval: 50, autoDelay: 900  },
+  x5:      { duration: 300,  interval: 30, autoDelay: 450  },
+  x10:     { duration: 150,  interval: 20, autoDelay: 250  },
+  x50:     { duration: 60,   interval: 12, autoDelay: 120  },
+  x100:    { duration: 20,   interval: 8,  autoDelay: 50   },
+  x500:    { duration: 10,   interval: 5,  autoDelay: 20   },
+  x1000:   { duration: 5,    interval: 5,  autoDelay: 10   },
+  x5000:   { duration: 5,    interval: 5,  autoDelay: 5    },
+  x10000:  { duration: 0,    interval: 0,  autoDelay: 3    },
+  x50k:    { duration: 0,    interval: 0,  autoDelay: 0, perFrame: 5    },
+  x100k:   { duration: 0,    interval: 0,  autoDelay: 0, perFrame: 15   },
+  x500k:   { duration: 0,    interval: 0,  autoDelay: 0, perFrame: 75   },
+  x1M:     { duration: 0,    interval: 0,  autoDelay: 0, perFrame: 150  },
+  x10M:    { duration: 0,    interval: 0,  autoDelay: 0, perFrame: 500  },
+  x50M:    { duration: 0,    interval: 0,  autoDelay: 0, perFrame: 2000 },
+  x100M:   { duration: 0,    interval: 0,  autoDelay: 0, perFrame: 5000 },
+  x500M:   { duration: 0,    interval: 0,  autoDelay: 0, perFrame: 15000},
+  x1B:     { duration: 0,    interval: 0,  autoDelay: 0, perFrame: 50000},
+  max:     { duration: 0,    interval: 0,  autoDelay: 0, perFrame: 200000},
+};
+
+let currentSpeed = 'x1';
+
+function setSpeed(s) {
+  currentSpeed = s;
+  document.querySelectorAll('.speed-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.speed === s);
+  });
+  if (autoInterval) { clearInterval(autoInterval); scheduleAuto(); }
+}
+
+function randBig() {
+  let s = '';
+  for (let i = 0; i < DIGITS; i++) s += Math.floor(Math.random() * 10);
+  if (s[0] === '0') s = String(Math.floor(Math.random()*9)+1) + s.slice(1);
+  return s;
+}
+
+const SUPER = {
+  '0':'\u2070','1':'\u00b9','2':'\u00b2','3':'\u00b3',
+  '4':'\u2074','5':'\u2075','6':'\u2076','7':'\u2077',
+  '8':'\u2078','9':'\u2079'
+};
+function toSup(n) { return String(n).split('').map(c => SUPER[c]||c).join(''); }
+
+function toScientific(s) {
+  const clean = s.replace(/^0+/, '') || '0';
+  if (clean === '0') return '0';
+  const exp = clean.length - 1;
+  const mantissa = clean[0] + (clean.length > 1 ? '.' + clean.slice(1, 30) : '');
+  return mantissa + ' \u00d7 10' + toSup(exp);
+}
+
+function randScientificFmt() {
+  const e = Math.floor(Math.random() * DIGITS);
+  const m = (Math.random() * 9 + 1).toFixed(15);
+  return m + ' \u00d7 10' + toSup(e);
+}
+
+// ── Chiffres romains ──
+function toRoman(n) {
+  if (n <= 0) return '';
+  const vals = [1000,900,500,400,100,90,50,40,10,9,5,4,1];
+  const syms = ['M','CM','D','CD','C','XC','L','XL','X','IX','V','IV','I'];
+  let result = '';
+  for (let i = 0; i < vals.length; i++) {
+    while (n >= vals[i]) { result += syms[i]; n -= vals[i]; }
+  }
+  return result;
+}
+
+// ── RANGS ──
+const RANKS = [
+  // ── Tier 1 : Métaux classiques ──
+  { name: 'Pierre',          min: 0,         color: '#888880' },
+  { name: 'Bronze',          min: 10,        color: '#a0622a' },
+  { name: 'Argent',          min: 30,        color: '#777788' },
+  { name: 'Or',              min: 75,        color: '#b8860b' },
+  { name: 'Platine',         min: 150,       color: '#4a9a8a' },
+  { name: 'Diamant',         min: 300,       color: '#2255cc' },
+  { name: 'Obsidienne',      min: 600,       color: '#6a0aaa' },
+  // ── Tier 2 : Divin ──
+  { name: 'Mythique',        min: 1000,      color: '#cc2200' },
+  { name: 'Céleste',         min: 2000,      color: '#0088cc' },
+  { name: 'Éternel',         min: 4000,      color: '#cc6600' },
+  { name: 'Divin',           min: 7500,      color: '#9900cc' },
+  { name: 'Transcendant',    min: 15000,     color: '#cc0055' },
+  { name: 'Cosmique',        min: 25000,     color: '#005599' },
+  { name: 'Primordial',      min: 40000,     color: '#885500' },
+  { name: 'Néant',           min: 60000,     color: '#330033' },
+  { name: 'Absolu',          min: 90000,     color: '#000000' },
+  // ── Tier 3 : Mathématique ──
+  { name: 'Epsilon',         min: 130000,    color: '#007755' },
+  { name: 'Delta',           min: 180000,    color: '#995500' },
+  { name: 'Sigma',           min: 240000,    color: '#004488' },
+  { name: 'Lambda',          min: 320000,    color: '#770044' },
+  { name: 'Pi',              min: 420000,    color: '#336600' },
+  { name: 'Phi',             min: 550000,    color: '#884400' },
+  { name: 'Psi',             min: 700000,    color: '#440088' },
+  { name: 'Omega',           min: 900000,    color: '#880000' },
+  // ── Tier 4 : Infini ──
+  { name: 'Aleph-0',         min: 1200000,   color: '#006688' },
+  { name: 'Aleph-1',         min: 1600000,   color: '#007799' },
+  { name: 'Aleph-2',         min: 2100000,   color: '#0088aa' },
+  { name: 'Aleph-Ω',   min: 2800000,   color: '#0099bb' },
+  // ── Tier 5 : Ordinal ──
+  { name: 'Ω',          min: 3700000,   color: '#aa2200' },
+  { name: 'Ω²',    min: 5000000,   color: '#bb3300' },
+  { name: 'ΩΩ',    min: 6800000,   color: '#cc4400' },
+  { name: 'ε₀',    min: 9000000,   color: '#dd5500' },
+  // ── Tier 6 : Absolu mathématique ──
+  { name: 'Graham',          min: 12000000,  color: '#2200aa' },
+  { name: 'TREE(3)',         min: 16000000,  color: '#3300bb' },
+  { name: 'Rayo',            min: 22000000,  color: '#4400cc' },
+  { name: 'BB(n)',           min: 30000000,  color: '#5500dd' },
+  { name: '∅ Zéro',     min: 40000000,  color: '#111111' },
+];
+
+// seuil du rang max pour l'ascension
+const MAX_RANK_MIN = RANKS[RANKS.length - 1].min;
+const ASCENSION_STEP = 1000; // +1 rang romain tous les 1000 rouleaux après Absolu
+
+let rolling = false;
+let autoInterval = null;
+let autoCount = 0;
+let stats = { total: 0, best: null, last: null };
+
+function strGt(a, b) { return a > b; }
+
+function getRankIndex(total) {
+  let idx = 0;
+  for (let i = 0; i < RANKS.length; i++) {
+    if (total >= RANKS[i].min) idx = i;
+  }
+  return idx;
+}
+
+// retourne { name, color, tier (chiffre romain ou ''), isMax, nextLabel, progress }
+function computeRank(total) {
+  const idx  = getRankIndex(total);
+  const rank = RANKS[idx];
+  const isMax = idx === RANKS.length - 1;
+
+  if (!isMax) {
+    const next = RANKS[idx + 1];
+    const progress = ((total - rank.min) / (next.min - rank.min)) * 100;
+    return {
+      name: rank.name, color: rank.color, tier: '',
+      isMax: false,
+      nextLabel: 'Prochain\u00a0: ' + next.name + ' \u2014 ' + next.min.toLocaleString('fr') + ' rouleaux',
+      progress: Math.min(progress, 100)
+    };
+  } else {
+    // Au-delà du rang max : ascension par paliers de 1000
+    const overMax = total - MAX_RANK_MIN;
+    const tierNum = Math.floor(overMax / ASCENSION_STEP); // 0 = premier palier
+    const tierRoman = tierNum > 0 ? toRoman(tierNum) : '';
+    const progressInTier = ((overMax % ASCENSION_STEP) / ASCENSION_STEP) * 100;
+    const nextTier = tierNum + 1;
+    const rouleauxNext = MAX_RANK_MIN + (tierNum + 1) * ASCENSION_STEP;
+    return {
+      name: rank.name, color: rank.color,
+      tier: tierRoman,
+      isMax: true,
+      nextLabel: 'Ascension ' + toRoman(nextTier) + ' \u2014 ' + rouleauxNext.toLocaleString('fr') + ' rouleaux',
+      progress: progressInTier
+    };
+  }
+}
+
+function updateRank(total, prevTotal) {
+  const r = computeRank(total);
+  const badge = document.getElementById('rankBadge');
+  const tierEl = document.getElementById('rankTier');
+  const bar   = document.getElementById('rankBar');
+  const nxt   = document.getElementById('rankNext');
+
+  badge.textContent = r.name;
+  badge.style.color = r.color;
+  tierEl.textContent = r.tier ? 'Ascension ' + r.tier : '';
+  bar.style.width = r.progress + '%';
+  bar.style.background = r.color;
+  nxt.textContent = r.nextLabel;
+  applyRankCardStyle(r.name);
+
+  // pas de toast
+}
+
+function showRankUpToast(label) {
+  const old = document.querySelector('.rankup-toast');
+  if (old) old.remove();
+  const toast = document.createElement('div');
+  toast.className = 'rankup-toast';
+  toast.textContent = '\u2b06 ' + label + ' d\u00e9bloqu\u00e9 !';
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 2200);
+}
+
+async function roll() {
+  if (rolling) return;
+  rolling = true;
+
+  const cfg = SPEED_CONFIGS[currentSpeed];
+  const display = document.getElementById('numDisplay');
+  const label   = document.getElementById('resultLabel');
+
+  label.textContent = '';
+
+  const final = randBig();
+
+  if (cfg.duration > 0) {
+    display.classList.add('rolling');
+    let elapsed = 0;
+    await new Promise(resolve => {
+      const t = setInterval(() => {
+        display.textContent = randScientificFmt();
+        elapsed += cfg.interval;
+        if (elapsed >= cfg.duration) { clearInterval(t); resolve(); }
+      }, cfg.interval);
+    });
+    display.classList.remove('rolling');
+  }
+
+  display.textContent = toScientific(final.padStart(DIGITS, '0'));
+
+  const prevTotal = stats.total;
+  stats.total++;
+  stats.last = final;
+  if (stats.best === null || strGt(final, stats.best)) stats.best = final;
+
+  const firstDigit = parseInt(final[0]);
+  if (final.replace(/0/g,'') === '')  label.textContent = '\u2014 Z\u00c9RO \u2014';
+  else if (firstDigit >= 9)           label.textContent = '\u2014 COLOSSALE \u2014';
+  else if (firstDigit >= 5)           label.textContent = '\u2014 \u00c9LEV\u00c9 \u2014';
+  else if (firstDigit <= 1)           label.textContent = '\u2014 INFIME \u2014';
+  else                                label.textContent = '';
+
+  document.getElementById('statTotal').textContent = stats.total.toLocaleString('fr');
+  document.getElementById('statBest').textContent  = stats.best ? toScientific(stats.best.padStart(DIGITS,'0')) : '\u2014';
+  document.getElementById('statLast').textContent  = stats.last ? toScientific(stats.last.padStart(DIGITS,'0')) : '\u2014';
+
+  updateRank(stats.total, prevTotal);
+  rolling = false;
+}
+
+// Roll rapide synchrone pour les vitesses extrêmes
+function rollSync() {
+  const final = randBig();
+  const display = document.getElementById('numDisplay');
+  display.textContent = toScientific(final.padStart(DIGITS, '0'));
+
+  const prevTotal = stats.total;
+  stats.total++;
+  stats.last = final;
+  if (stats.best === null || strGt(final, stats.best)) stats.best = final;
+
+  document.getElementById('statTotal').textContent = stats.total.toLocaleString('fr');
+  document.getElementById('statBest').textContent  = toScientific(stats.best.padStart(DIGITS,'0'));
+  document.getElementById('statLast').textContent  = toScientific(stats.last.padStart(DIGITS,'0'));
+  updateRank(stats.total, prevTotal);
+}
+
+updateRank(0, 0);
+
+// ── THÈMES ──
+let currentTheme = 'blanc';
+
+const THEMES = {
+  blanc: { bg: '#f5f5f0', fg: '#0a0a0a', mid: '#999990', border: '#e0e0d8' },
+  noir:  { bg: '#0a0a0a', fg: '#f0f0f0', mid: '#777770', border: '#2a2a2a' },
+  rose:  { bg: '#fff0f4', fg: '#7a003a', mid: '#cc6688', border: '#f0c0cc' },
+  bleu:  { bg: '#0d1b4b', fg: '#a8d4ff', mid: '#5588bb', border: '#1a3066' },
+  vert:  { bg: '#0a2a14', fg: '#7fffb0', mid: '#3a8a5a', border: '#1a5028' },
+  rouge: { bg: '#2a0000', fg: '#ffaaaa', mid: '#cc5555', border: '#550000' },
+};
+
+function setTheme(name) {
+  const t = THEMES[name];
+  if (!t) return;
+  currentTheme = name;
+  const r = document.documentElement.style;
+  r.setProperty('--bg',     t.bg);
+  r.setProperty('--fg',     t.fg);
+  r.setProperty('--mid',    t.mid);
+  r.setProperty('--border', t.border);
+  r.setProperty('--btn-bg', t.bg);
+  document.querySelectorAll('.theme-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.theme === name);
+  });
+}
+
+function toggleAuto() {
+  autoInterval ? stopAuto() : startAuto();
+}
+
+function scheduleAuto() {
+  const cfg = SPEED_CONFIGS[currentSpeed];
+  if (cfg.autoDelay === 0) {
+    // mode MAX : boucle aussi vite que possible via requestAnimationFrame
+    let running = true;
+    let count = 0;
+    function loop() {
+      if (!autoInterval) return;
+      // faire plusieurs rouleaux par frame à vitesse MAX
+      const perFrame = currentSpeed === 'max' ? 50 : 10;
+      for (let i = 0; i < perFrame; i++) rollSync();
+      count += perFrame;
+      autoCount = count;
+      document.getElementById('autoInfo').textContent = 'Tour auto n\u00b0' + autoCount.toLocaleString('fr');
+      requestAnimationFrame(loop);
+    }
+    autoInterval = true; // flag non-null
+    requestAnimationFrame(loop);
+  } else {
+    let doTurn = () => {
+      autoCount++;
+      document.getElementById('autoInfo').textContent = 'Tour auto n\u00b0' + autoCount.toLocaleString('fr');
+      roll();
+    };
+    doTurn();
+    autoInterval = setInterval(doTurn, cfg.autoDelay);
+  }
+}
+
+function startAuto() {
+  const btn = document.getElementById('btnAuto');
+  btn.classList.add('active');
+  btn.querySelector('span').textContent = '\u23f9 Stop auto';
+  document.getElementById('btnRoll').disabled = true;
+  autoCount = 0;
+  scheduleAuto();
+}
+
+function stopAuto() {
+  if (typeof autoInterval === 'number') clearInterval(autoInterval);
+  autoInterval = null;
+  rolling = false;
+  const btn = document.getElementById('btnAuto');
+  btn.classList.remove('active');
+  btn.querySelector('span').textContent = '\ud83d\udd01 Rouler auto';
+  document.getElementById('autoInfo').textContent = 'Arr\u00eat\u00e9 apr\u00e8s ' + autoCount.toLocaleString('fr') + ' tours';
+  document.getElementById('btnRoll').disabled = false;
+}
+
+
+
+// ── SAUVEGARDE (localStorage) ──
+const SAVE_KEY = 'rngsoul_save';
+
+function saveGame() {
+  const data = {
+    total:   stats.total,
+    best:    stats.best,
+    last:    stats.last,
+    theme:   currentTheme,
+    speed:   currentSpeed,
+    savedAt: Date.now(),
+  };
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+    showSaveToast('✓ Partie sauvegardée');
+    updateSaveIndicator();
+  } catch(e) {
+    showSaveToast('✗ Erreur de sauvegarde');
+  }
+}
+
+function loadGame() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    stats.total = data.total || 0;
+    stats.best  = data.best  || null;
+    stats.last  = data.last  || null;
+
+    // restore UI
+    document.getElementById('statTotal').textContent = stats.total.toLocaleString('fr');
+    document.getElementById('statBest').textContent  = stats.best ? toScientific(stats.best.padStart(DIGITS,'0')) : '—';
+    document.getElementById('statLast').textContent  = stats.last ? toScientific(stats.last.padStart(DIGITS,'0')) : '—';
+    updateRank(stats.total, 0);
+
+    if (data.theme) setTheme(data.theme);
+    if (data.speed) setSpeed(data.speed);
+
+    updateSaveIndicator();
+  } catch(e) {}
+}
+
+function resetGame() {
+  if (!confirm('Réinitialiser toute la progression ?')) return;
+  localStorage.removeItem(SAVE_KEY);
+  stats = { total: 0, best: null, last: null };
+  document.getElementById('statTotal').textContent = '0';
+  document.getElementById('statBest').textContent  = '—';
+  document.getElementById('statLast').textContent  = '—';
+  document.getElementById('numDisplay').textContent = '—';
+  updateRank(0, 0);
+  updateSaveIndicator();
+  showSaveToast('Progression réinitialisée');
+}
+
+function updateSaveIndicator() {
+  const raw = localStorage.getItem(SAVE_KEY);
+  const el  = document.getElementById('saveIndicator');
+  if (!el) return;
+  if (!raw) { el.textContent = ''; return; }
+  try {
+    const data = JSON.parse(raw);
+    const d = new Date(data.savedAt);
+    el.textContent = 'Dernière sauvegarde : ' + d.toLocaleString('fr');
+  } catch(e) { el.textContent = ''; }
+}
+
+function showSaveToast(msg) {
+  const old = document.querySelector('.save-toast');
+  if (old) old.remove();
+  const t = document.createElement('div');
+  t.className = 'save-toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2200);
+}
+
+// autosave toutes les 30 secondes
+setInterval(() => {
+  if (stats.total > 0) {
+    try {
+      const data = { total: stats.total, best: stats.best, last: stats.last, theme: currentTheme, speed: currentSpeed, savedAt: Date.now() };
+      localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+      updateSaveIndicator();
+    } catch(e) {}
+  }
+}, 30000);
+
+// ── NAVIGATION ──
+function showScreen(name) {
+  const screens = {
+    menu:        document.getElementById('screenMenu'),
+    game:        document.getElementById('screenGame'),
+    credits:     document.getElementById('screenCredits'),
+    classement:  document.getElementById('screenClassement'),
+  };
+  Object.entries(screens).forEach(([key, el]) => {
+    el.classList.toggle('screen-hidden', key !== name);
+  });
+  // update classement with current stats
+  if (name === 'classement') {
+    const r = computeRank(stats.total);
+    document.getElementById('clRang').textContent   = r.name + (r.tier ? ' — Ascension ' + r.tier : '');
+    document.getElementById('clRoules').textContent = stats.total.toLocaleString('fr');
+  }
+  // stop auto when leaving game
+  if (name !== 'game' && autoInterval) stopAuto();
+}
+
+// start on menu
+showScreen('menu');
+loadGame();
+updateSaveIndicator();
+</script>
+<button class="back-btn" style="margin-top:8px" onclick="showScreen('menu')">← Menu</button>
+</div>
+
+</body>
+</html>
